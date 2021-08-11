@@ -4,13 +4,13 @@ RbxlxParser is a commandline program that can parse a .rbxlx Roblox Studio save 
 Any Lua code will be placed into its own .lua file with the same name as the script it came from.
 
 # Usage
-`RbxlxParser.jar SOURCE DESTINATION` - Reads the _SOURCE_ .rbxlx file and parses it, putting all output into the _DESTINATION_ folder.
+`java -jar RbxlxParser.jar SOURCE DESTINATION` - Reads the _SOURCE_ .rbxlx file and parses it, putting all output into the _DESTINATION_ folder.
 
 **NOTE:** If your filepaths contain spaces, be sure to surround them in quotes. (**Ex:** _my folder/output folder_ -> _"my folder/output folder"_)
 
 ----
 
-`RbxlxParser.jar help` - Displays the RbxlxParser manual. Use this to find the version number.
+`java -jar RbxlxParser.jar help` - Displays the RbxlxParser manual. Use this to find the version number.
 
 **NOTE:** "help" is not case-sensitive.
 
