@@ -17,11 +17,12 @@ import com.warven22.rbxlxparser.element.Element;
 import com.warven22.rbxlxparser.element.ParentElement;
 import com.warven22.rbxlxparser.element.ValueElement;
 import com.warven22.rbxlxparser.util.FileUtil;
+import com.warven22.rbxlxparser.util.ProgressBar;
 import com.warven22.rbxlxparser.util.RbxlxHandler;
 
 public class RbxlxParserMain {
 	public static void main(String[] args) {
-
+		
 		// Incorrect args
 		if (args.length != 2 && args.length != 1) {
 			System.err.println("USAGE: RbxlxParser <Source> <Destination> OR RbxlxParser help");
@@ -30,7 +31,7 @@ public class RbxlxParserMain {
 
 		// Manual
 		if (args[0].equalsIgnoreCase("help")) {
-			System.out.println("--RbxlxParser Help--\n" + "USAGE: RbxlxParser <Source> <Destination>\n"
+			System.out.println("--RbxlxParser v1.1.0 Help--\n" + "USAGE: RbxlxParser <Source> <Destination>\n"
 					+ "Source: Must be .rbxlx file\n" + "Destination: Must be an empty or non-existing folder\n"
 					+ "The Roblox items will be extracted into their own files into the destination folder\n"
 					+ "----------------------");
@@ -60,6 +61,8 @@ public class RbxlxParserMain {
 		// Parsing .rbxlx
 		RbxlxHandler handler = new RbxlxHandler();
 
+		System.out.printf("Parsing '%s'...%n", rbxlxFile.getName());
+		
 		SAXParser parser;
 		try {
 			parser = SAXParserFactory.newInstance().newSAXParser();
@@ -70,6 +73,8 @@ public class RbxlxParserMain {
 			return;
 		}
 
+		System.out.println("Determining files needed...");
+		
 		// Creating files for every item
 		LinkedList<Element> items = handler.getRoot().filterByElementName("Item");
 		HashMap<File, ParentElement> fileToItem = new HashMap<>();
@@ -77,10 +82,19 @@ public class RbxlxParserMain {
 			createFilesForItem(destFolder, (ParentElement) itemElement, fileToItem);
 		}
 
+		ProgressBar progressBar = new ProgressBar();
+		int work = 0;
+		int totalWork = fileToItem.size();
 		// Writing content to files
 		for (Entry<File, ParentElement> entry : fileToItem.entrySet()) {
 			ParentElement itemProperties = (ParentElement) entry.getValue().filterByElementName("Properties").get(0);
 
+			String itemName = itemProperties.findValueElementByNameAndAttribute("string", "name", "Name").getValue();
+			if (itemName == null) {
+				itemName = entry.getValue().getName();
+			}
+			progressBar.update(work, totalWork, String.format("Writing '%s' to '%s'", itemName, entry.getKey().getName()));
+			
 			String targetFileExt = FileUtil.getExtension(entry.getKey());
 			if (targetFileExt.equals("lua")) {
 
@@ -92,6 +106,7 @@ public class RbxlxParserMain {
 					fileWriter.write(code);
 					fileWriter.flush();
 				} catch (IOException e) {
+					progressBar.stop();
 					System.err.printf("Error while writing '%s': %s%n\t%s%n", entry.getKey().getPath(),
 							e.getClass().getName(), e.getMessage());
 					return;
@@ -108,13 +123,21 @@ public class RbxlxParserMain {
 					fileWriter.write(content);
 					fileWriter.flush();
 				} catch (IOException e) {
+					progressBar.stop();
 					System.err.printf("Error while writing '%s': %s%n\t%s%n", entry.getKey().getPath(),
 							e.getClass().getName(), e.getMessage());
 					return;
 				}
 
 			}
+			
+			work++;
 		}
+		progressBar.update(work, totalWork);
+		progressBar.stop();
+		
+		System.out.printf("Parsing of '%s' complete.%n", rbxlxFile.getName());
+		System.out.printf("Parsed files can be found in '%s'.%n", destFolder.getAbsolutePath());
 	}
 
 	/**

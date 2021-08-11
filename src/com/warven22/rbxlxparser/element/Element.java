@@ -37,5 +37,6 @@ public class Element {
 	public Element(String name, HashMap<String, String> attributes) {
 		_name = name;
 		_attributes = attributes;
+		_children = new LinkedList<>();
 	}
 }
