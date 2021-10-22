@@ -10,7 +10,7 @@ import java.util.LinkedList;
 public class ParentElement extends Element {
 	
 	/**
-	 * Finds the {@link com.warven22.rbxlxparser.element.Element ValueElement}
+	 * Finds the {@link ValueElement}
 	 * that has the given name and given attribute with the given value
 	 * 
 	 * @param elementName The name of the element to find
