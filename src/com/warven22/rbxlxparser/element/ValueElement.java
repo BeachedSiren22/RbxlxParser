@@ -3,7 +3,7 @@ package com.warven22.rbxlxparser.element;
 import java.util.HashMap;
 
 /**
- * Represents an {@link com.warven22.rbxlxparser.element.Element Element}
+ * Represents an {@link Element}
  * that has a value, but no children.
  */
 public class ValueElement extends Element {
