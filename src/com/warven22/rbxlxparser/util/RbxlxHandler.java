@@ -13,7 +13,6 @@ import com.warven22.rbxlxparser.element.ValueElement;
  * The SAX XML parsing handler for RBXLX files
  */
 public class RbxlxHandler extends DefaultHandler {
-	
 	private ParentElement _root;
 	/**
 	 * @return The root {@link com.warven22.rbxlxparser.element.Element ParentElement} that all
@@ -23,7 +22,7 @@ public class RbxlxHandler extends DefaultHandler {
 		return _root;
 	}
 	
-	private StringBuilder currentValue = new StringBuilder();
+	private StringBuilder _currentValue = new StringBuilder();
 	private NameAttrPair _lastNameAttrPair;
 	private Stack<ParentElement> _parentStack = new Stack<>();
 	
@@ -48,8 +47,8 @@ public class RbxlxHandler extends DefaultHandler {
 			String localName,
 			String qName,
 			Attributes attributes)
-	{
-		currentValue.setLength(0);
+	{	
+		_currentValue.setLength(0);
 	  
 		if (_lastNameAttrPair != null) {
 			ParentElement newParent = new ParentElement(_lastNameAttrPair.qName, _lastNameAttrPair.attributes);
@@ -67,14 +66,14 @@ public class RbxlxHandler extends DefaultHandler {
 			String uri,
 			String localName,
 			String qName)
-	{
+	{	
 		if (qName.equals(_parentStack.peek().getName())) {
 			ParentElement popped = _parentStack.pop();
 			if (_parentStack.isEmpty()) {
 				_root = popped;
 			}
 		} else {
-			_parentStack.peek().getChildren().add(new ValueElement(_lastNameAttrPair.qName, _lastNameAttrPair.attributes, currentValue.toString().trim()));
+			_parentStack.peek().getChildren().add(new ValueElement(_lastNameAttrPair.qName, _lastNameAttrPair.attributes, _currentValue.toString().trim()));
 			_lastNameAttrPair = null;
 		}
 	}
@@ -82,7 +81,7 @@ public class RbxlxHandler extends DefaultHandler {
 	@Override
 	public void characters(char ch[], int start, int length) {
 		// The characters() method can be called multiple times for a single text node.
-		currentValue.append(ch, start, length);
+		_currentValue.append(ch, start, length);
 	}
 	  
 }

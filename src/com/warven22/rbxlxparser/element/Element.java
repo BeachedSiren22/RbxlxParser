@@ -30,6 +30,10 @@ public class Element {
 	}
 	
 	private LinkedList<Element> _children;
+	/**
+	 * @return all children of this element, contained
+	 * within the opening & closing tags.
+	 */
 	public LinkedList<Element> getChildren() {
 		return _children;
 	}

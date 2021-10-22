@@ -46,7 +46,7 @@ public class FileUtil {
 		File workFile = file;
 		int index = 1;
 		if (workFile.exists()) {
-			workFile = new File(String.format("%s/%s(%d).%s", workFile.getParent(), FileUtil.getNameWithoutExtension(workFile), index, FileUtil.getExtension(workFile)));
+			workFile = new File(String.format("%s/%s(%d).%s", workFile.getParent(), FileUtil.getNameWithoutExtension(workFile), index++, FileUtil.getExtension(workFile)));
 		}
 		return workFile;
 	}
