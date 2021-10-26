@@ -11,8 +11,8 @@ import javax.xml.parsers.SAXParserFactory;
 
 import org.xml.sax.SAXException;
 
-import com.warven22.rbxlxparser.element.Element;
 import com.warven22.rbxlxparser.element.ParentElement;
+import com.warven22.rbxlxparser.roblox.RobloxItem;
 import com.warven22.rbxlxparser.tasks.FileCreatorTask;
 import com.warven22.rbxlxparser.tasks.FileWriterTask;
 import com.warven22.rbxlxparser.util.FileUtil;
@@ -83,16 +83,19 @@ public class RbxlxParserMain {
 			return;
 		}
 		
-		System.out.println("Done.");
-
 		// Creating files for every item
-		LinkedList<Element> items = handler.getRoot().filterByElementName("Item");
+		LinkedList<RobloxItem> robloxItems = new LinkedList<>();
+		handler.getRoot().filterByElementName("Item").forEach(itemElement -> {
+			robloxItems.add(RobloxItem.fromParentElement((ParentElement)itemElement));
+		});
 		
-		FileCreatorTask fileCreatorTask = new FileCreatorTask(destFolder, items);
+		System.out.println("Done.");
 		
-		ProgressBarWrappedIterator<Element> creatorProgressBar = (ProgressBarWrappedIterator<Element>)ProgressBar.wrap(
+		FileCreatorTask fileCreatorTask = new FileCreatorTask(destFolder, robloxItems);
+		
+		ProgressBarWrappedIterator<RobloxItem> creatorProgressBar = (ProgressBarWrappedIterator<RobloxItem>)ProgressBar.wrap(
 			fileCreatorTask,
-			new ProgressBarBuilder().setTaskName("Creating Files").setStyle(ProgressBarStyle.ASCII).setInitialMax(items.size()).setUpdateIntervalMillis(10).setMaxRenderedLength(119)
+			new ProgressBarBuilder().setTaskName("Creating Files").setStyle(ProgressBarStyle.ASCII).setInitialMax(robloxItems.size()).setUpdateIntervalMillis(10).setMaxRenderedLength(119)
 		);
 		
 		fileCreatorTask.setProgressBar(creatorProgressBar.getProgressBar());
@@ -101,10 +104,10 @@ public class RbxlxParserMain {
 			creatorProgressBar.next();
 		}
 		
-		FileWriterTask fileWriterTask = new FileWriterTask(fileCreatorTask.getFileToItemMap().entrySet());
+		FileWriterTask fileWriterTask = new FileWriterTask(fileCreatorTask.getFileToObjectMap().entrySet());
 		
-		int totalFiles = fileCreatorTask.getFileToItemMap().entrySet().size();
-		ProgressBarWrappedIterator<Entry<File, ParentElement>> writerProgressBar = (ProgressBarWrappedIterator<Entry<File, ParentElement>>)ProgressBar.wrap(
+		int totalFiles = fileCreatorTask.getFileToObjectMap().entrySet().size();
+		ProgressBarWrappedIterator<Entry<File, Object>> writerProgressBar = (ProgressBarWrappedIterator<Entry<File, Object>>)ProgressBar.wrap(
 			fileWriterTask,
 			new ProgressBarBuilder().setTaskName("Writing Files").setStyle(ProgressBarStyle.ASCII).setInitialMax(totalFiles).setUpdateIntervalMillis(10).setMaxRenderedLength(119)
 		);

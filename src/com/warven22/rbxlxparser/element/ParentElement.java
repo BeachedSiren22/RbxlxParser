@@ -1,7 +1,9 @@
 package com.warven22.rbxlxparser.element;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Map.Entry;
 
 /**
  * Represents an {@link com.warven22.rbxlxparser.element.Element Element}
@@ -54,6 +56,21 @@ public class ParentElement extends Element {
 		super(name, attributes);
 	}
 	
+	public String toXML() {
+		StringBuilder sb = new StringBuilder(" ");
+		Iterator<Entry<String, String>> attrIter = entryIterator();
+		while(attrIter.hasNext()) {
+			Entry<String, String> attr = attrIter.next();
+			if (!attrIter.hasNext()) {
+				sb.append(String.format("%s=\"%s\"", attr.getKey(), attr.getValue()));
+			} else {
+				sb.append(String.format("%s=\"%s\" ", attr.getKey(), attr.getValue()));
+			}
+		}
+		if (sb.length() == 1) sb.deleteCharAt(0);
+		return String.format("<%s%s>", this.getName(), sb.toString());
+	}
+
 	@Override
 	public String toString() {
 		return String.format("%s %s", this.getName(), getChildren().toString());

@@ -1,13 +1,17 @@
 package com.warven22.rbxlxparser.element;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Map.Entry;
 
 /**
  * Represents an Element of XML with attributes,
  * a name, and possibly child elements.
  */
-public class Element {
+public abstract class Element {
+	
+	public abstract String toXML();
 	
 	private String _name;
 	/**
@@ -27,6 +31,15 @@ public class Element {
 	 */
 	public String getAttribute(String attribute) {
 		return _attributes.get(attribute);
+	}
+	public boolean hasAttribute(String attributeName) {
+		return _attributes.containsKey(attributeName);
+	}
+	public Iterator<Entry<String, String>> entryIterator() {
+		return _attributes.entrySet().iterator();
+	}
+	public int getAttributeCount() {
+		return _attributes.size();
 	}
 	
 	private LinkedList<Element> _children;

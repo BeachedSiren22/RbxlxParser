@@ -8,9 +8,9 @@ import java.util.Stack;
 
 import com.warven22.rbxlxparser.element.Element;
 import com.warven22.rbxlxparser.element.ParentElement;
-import com.warven22.rbxlxparser.element.ValueElement;
+import com.warven22.rbxlxparser.roblox.RobloxItem;
+import com.warven22.rbxlxparser.roblox.RobloxValue;
 import com.warven22.rbxlxparser.util.FileUtil;
-import com.warven22.rbxlxparser.util.ItemUtil;
 
 import me.tongfei.progressbar.ProgressBar;
 
@@ -20,17 +20,17 @@ import me.tongfei.progressbar.ProgressBar;
  * This task involves going over a set of {@link Element}s and
  * writing the {@link ParentElement} to its associated file.
  */
-public class FileCreatorTask implements Iterator<Element> {
+public class FileCreatorTask implements Iterator<RobloxItem> {
 
-	private LinkedList<Element> _rootItemElements;
-	
-	private HashMap<File, ParentElement> _fileToItem;
+	private LinkedList<RobloxItem> _rootItems;
+	private File _destFolder;
+	private HashMap<File, Object> _fileToObject;
 	/**
 	 * @return The map that represents what {@link File} will take
 	 * what {@link ParentElement}'s content
 	 */
-	public HashMap<File, ParentElement> getFileToItemMap() {
-		return _fileToItem;
+	public HashMap<File, Object> getFileToObjectMap() {
+		return _fileToObject;
 	}
 	
 	private ProgressBar _progressBar;
@@ -42,16 +42,31 @@ public class FileCreatorTask implements Iterator<Element> {
 	public void setProgressBar(ProgressBar progressBar) {
 		this._progressBar = progressBar;
 	}
+
+	private HashMap<RobloxItem, File> _itemToFolder;
+	private Stack<LinkedList<RobloxItem>> _childrenStack;
+	private RobloxItem getNextChild() {
+		if (_childrenStack.isEmpty()) return null;
+		while(!_childrenStack.isEmpty()) {
+			LinkedList<RobloxItem> curList = _childrenStack.peek();
+			if (curList.isEmpty()) {
+				_childrenStack.pop();
+			} else {
+				return curList.pop();
+			}
+		}
+		return null;
+	}
 	
-	private Stack<LinkedList<Element>> _childrenStack;
-	private Stack<File> _folderStack;
-	
-	public FileCreatorTask(File destFolder, LinkedList<Element> itemElements) {
-		_fileToItem = new HashMap<>();
+	public FileCreatorTask(File destFolder, LinkedList<RobloxItem> robloxItems) {
+		_fileToObject = new HashMap<>();
+		_itemToFolder = new HashMap<>();
 		_childrenStack = new Stack<>();
-		_folderStack = new Stack<>();
-		_folderStack.push(destFolder);
-		_rootItemElements = itemElements;
+		_rootItems = robloxItems;
+		_destFolder = destFolder;
+		_rootItems.forEach(item -> {
+			_itemToFolder.put(item, _destFolder);
+		});
 	}
 	
 	/**
@@ -59,33 +74,25 @@ public class FileCreatorTask implements Iterator<Element> {
 	 */
 	@Override
 	public boolean hasNext() {
-		return !_rootItemElements.isEmpty();
+		return !_rootItems.isEmpty() || !_childrenStack.isEmpty();
 	}
 
 	/**
 	 * gets the next {@link Element} in line, processes it, and handles its children
 	 */
 	@Override
-	public Element next() {
-		Element nextElement = null;
+	public RobloxItem next() {
+		RobloxItem item = getNextChild();
 		
-		if (_childrenStack.isEmpty()) {
-			nextElement = _rootItemElements.pop();
-		} else {
-			nextElement = _childrenStack.peek().pop();
-			if (_childrenStack.peek().isEmpty()) {
-				// No more children, all done with this one
-				_folderStack.pop();
-				_childrenStack.pop();
-			}
+		if (item == null) {
+			item = _rootItems.pop();
 		}
 		
-		if (!checkParent(nextElement)) {
-			// No children, process individually
-			process(nextElement);
+		if (!checkParent(item)) {
+			process(item);
 		}
-			
-		return null;
+		
+		return item;
 	}
 	
 	/**
@@ -100,22 +107,23 @@ public class FileCreatorTask implements Iterator<Element> {
 	 * 
 	 * @param itemElement The element to process
 	 */
-	private void process(Element itemElement) {
-		ParentElement parentElement = (ParentElement)itemElement;
+	private void process(RobloxItem item) {
+		String itemName = (item.getItemName() == null) ? item.getClassName() : item.getItemName();
 		
-		String itemName = getParentElementName((ParentElement)itemElement);
+		File targetFolder = _itemToFolder.get(item);
 		
-		_progressBar.setExtraMessage(String.format("Creating File For '%s'", itemName));
-
-		String className = itemElement.getAttribute("class");
-		File fileForItem = createNonExistingFilePath(new File(String.format("%s/%s.%s", _folderStack.peek().getPath(), itemName, className)));
-		_fileToItem.put(fileForItem, parentElement);
-
-		ParentElement itemProperties = (ParentElement) parentElement.filterByElementName("Properties").get(0);
-		ValueElement sourceElement = itemProperties.findValueElementByNameAndAttribute("ProtectedString", "name","Source");
-		if (sourceElement != null) {
-			File fileForCode = createNonExistingFilePath(new File(String.format("%s/%s.lua", _folderStack.peek().getPath(), itemName)));
-			_fileToItem.put(fileForCode, parentElement);
+		if (item.getChildren().size() > 0) {
+			File fileForItem = createNonExistingFilePath(new File(String.format("%s/%s.%s.Parent", targetFolder.getPath(), itemName, item.getClassName())));
+			_fileToObject.put(fileForItem, item);
+		} else {
+			File fileForItem = createNonExistingFilePath(new File(String.format("%s/%s.%s", targetFolder.getPath(), itemName, item.getClassName())));
+			_fileToObject.put(fileForItem, item);
+		}
+		
+		RobloxValue sourceValue = item.getCodeValue();
+		if (sourceValue != null) {
+			File fileForCode = createNonExistingFilePath(new File(String.format("%s/%s.lua", targetFolder.getPath(), itemName)));
+			_fileToObject.put(fileForCode, sourceValue);
 			_progressBar.step();
 		}
 	}
@@ -133,29 +141,26 @@ public class FileCreatorTask implements Iterator<Element> {
 	 * @param itemElement The element to check
 	 * @return Whether the element is a parent or not
 	 */
-	private boolean checkParent(Element itemElement) {
-		if (!ItemUtil.getChildListWithoutProperties(itemElement).isEmpty()) {
-			String itemName = getParentElementName((ParentElement)itemElement);
-			File newFolder = new File(String.format("%s/%s", _folderStack.peek().getPath(), itemName));
-			_folderStack.push(newFolder);
-			process(itemElement);
-			_childrenStack.push(((ParentElement)itemElement).filterByElementName("Item"));
+	private boolean checkParent(RobloxItem item) {
+		if (item.getChildren().size() > 0) {
+			String itemName = (item.getItemName() == null) ? item.getClassName() : item.getItemName();
+			
+			File oldFolder = _itemToFolder.get(item);
+			File newFolder = new File(String.format("%s/%s", oldFolder.getPath(), itemName));
+
+			item.getChildren().forEach(child -> {
+				_itemToFolder.put(child, newFolder);
+			});
+			_itemToFolder.put(item, newFolder);
+			
+			process(item);
+			_childrenStack.push(item.getChildren());
 			return true;
 		} else {
 			return false;
 		}
 	}
 
-	/**
-	 * @param element The {@link ParentElement} to get the name of
-	 * @return The name of the {@link ParentElement} from the
-	 * name property
-	 */
-	private String getParentElementName(ParentElement element) {
-		ParentElement itemProperties = (ParentElement)element.filterByElementName("Properties").get(0);
-		return itemProperties.findValueElementByNameAndAttribute("string", "name", "Name").getValue();
-	}
-	
 	/**
 	 * Takes a file and gets a variation of it that does not currently exist in the File-ParentElement map.
 	 * <br>This is done by taking the file and, if it exists in the File-ParentElement map, a number is added
@@ -170,7 +175,7 @@ public class FileCreatorTask implements Iterator<Element> {
 	private File createNonExistingFilePath(File file) {
 		File workFile = file;
 		int index = 1;
-		while (_fileToItem.containsKey(workFile)) {
+		while (_fileToObject.containsKey(workFile)) {
 			workFile = new File(String.format("%s/%s(%d).%s", file.getParent(), FileUtil.getNameWithoutExtension(file), index++, FileUtil.getExtension(file)));
 		}
 		return workFile;

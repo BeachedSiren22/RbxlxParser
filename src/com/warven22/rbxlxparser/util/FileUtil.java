@@ -26,9 +26,21 @@ public class FileUtil {
 	 * @param file The file to get the name of
 	 * @return The name of the file without the extension
 	 */
-	public static String getNameWithoutExtension(File file) {
+	public static String getPathWithoutExtension(File file) {
 		String filePath = file.getPath();
 		return filePath.substring(0, filePath.lastIndexOf('.'));
+	}
+	
+	/**
+	 * Gets the name of the file, before the extension.
+	 * <br><b>ex:</b> <i>filename.txt</i> would return <i>filename</i>
+	 * 
+	 * @param file The file to get the name of
+	 * @return The name of the file without the extension
+	 */
+	public static String getNameWithoutExtension(File file) {
+		String filePath = file.getPath();
+		return filePath.substring(filePath.lastIndexOf("\\")+1, filePath.lastIndexOf('.'));
 	}
 	
 	/**
